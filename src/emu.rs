@@ -1,4 +1,5 @@
 use opcode::Opcode;
+use rand::prelude::*;
 use register::Register;
 use std::u8;
 
@@ -154,5 +155,11 @@ impl Emu {
 
     fn jp_v0(&mut self, addr: u16) {
         self.pc = (self.registers[Register::V0.to_usize()] as u16) + addr;
+    }
+
+    fn rnd(&mut self, reg: Register, byte: u8) {
+        let mut rng = thread_rng();
+        let rand = rng.gen_range(0, u8::MAX);
+        self.registers[reg.to_usize()] = rand & byte;
     }
 }
