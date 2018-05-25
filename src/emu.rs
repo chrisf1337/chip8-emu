@@ -1,5 +1,6 @@
 use opcode::Opcode;
 use register::Register;
+use std::u8;
 
 pub struct Emu {
     registers: [u8; 16],
@@ -31,10 +32,17 @@ impl Emu {
             Opcode::Call(addr) => self.call(*addr),
             Opcode::SeVal(reg, byte) => self.se_val(*reg, *byte),
             Opcode::SneVal(reg, byte) => self.sne_val(*reg, *byte),
-            Opcode::SeReg(reg_a, reg_b) => self.se_reg(*reg_a, *reg_b),
+            Opcode::SeReg(reg_x, reg_y) => self.se_reg(*reg_x, *reg_y),
             Opcode::LdVal(reg, byte) => self.ld_val(*reg, *byte),
             Opcode::AddVal(reg, byte) => self.add_val(*reg, *byte),
-            Opcode::LdReg(reg_a, reg_b) => self.ld_reg(*reg_a, *reg_b),
+            Opcode::LdReg(reg_x, reg_y) => self.ld_reg(*reg_x, *reg_y),
+            Opcode::Or(reg_x, reg_y) => self.or(*reg_x, *reg_y),
+            Opcode::And(reg_x, reg_y) => self.and(*reg_x, *reg_y),
+            Opcode::Xor(reg_x, reg_y) => self.xor(*reg_x, *reg_y),
+            Opcode::AddReg(reg_x, reg_y) => self.add_reg(*reg_x, *reg_y),
+            Opcode::Sub(reg_x, reg_y) => self.sub(*reg_x, *reg_y),
+            Opcode::Shr(reg_x) => self.shr(*reg_x),
+            Opcode::Subn(reg_x, reg_y) => self.subn(*reg_x, *reg_y),
             _ => unreachable!(),
         }
     }
@@ -58,20 +66,20 @@ impl Emu {
         self.pc = addr;
     }
 
-    fn se_val(&mut self, register: Register, byte: u8) {
-        if self.registers[register.to_usize()] == byte {
+    fn se_val(&mut self, reg: Register, byte: u8) {
+        if self.registers[reg.to_usize()] == byte {
             self.pc += 2;
         }
     }
 
-    fn sne_val(&mut self, register: Register, byte: u8) {
-        if self.registers[register.to_usize()] != byte {
+    fn sne_val(&mut self, reg: Register, byte: u8) {
+        if self.registers[reg.to_usize()] != byte {
             self.pc += 2;
         }
     }
 
-    fn se_reg(&mut self, reg_a: Register, reg_b: Register) {
-        if self.registers[reg_a.to_usize()] == self.registers[reg_b.to_usize()] {
+    fn se_reg(&mut self, reg_x: Register, reg_y: Register) {
+        if self.registers[reg_x.to_usize()] == self.registers[reg_y.to_usize()] {
             self.pc += 2;
         }
     }
@@ -84,7 +92,45 @@ impl Emu {
         self.registers[reg.to_usize()] += byte;
     }
 
-    fn ld_reg(&mut self, reg_a: Register, reg_b: Register) {
-        self.registers[reg_a.to_usize()] = self.registers[reg_b.to_usize()];
+    fn ld_reg(&mut self, reg_x: Register, reg_y: Register) {
+        self.registers[reg_x.to_usize()] = self.registers[reg_y.to_usize()];
+    }
+
+    fn or(&mut self, reg_x: Register, reg_y: Register) {
+        self.registers[reg_x.to_usize()] |= self.registers[reg_y.to_usize()];
+    }
+
+    fn and(&mut self, reg_x: Register, reg_y: Register) {
+        self.registers[reg_x.to_usize()] &= self.registers[reg_y.to_usize()];
+    }
+
+    fn xor(&mut self, reg_x: Register, reg_y: Register) {
+        self.registers[reg_x.to_usize()] ^= self.registers[reg_y.to_usize()];
+    }
+
+    fn add_reg(&mut self, reg_x: Register, reg_y: Register) {
+        let vx = self.registers[reg_x.to_usize()] as u16;
+        let vy = self.registers[reg_y.to_usize()] as u16;
+        self.registers[Register::Vf.to_usize()] = if vx + vy > (u8::MAX as u16) { 1 } else { 0 };
+        // truncate
+        self.registers[reg_x.to_usize()] = (vx + vy) as u8;
+    }
+
+    fn sub(&mut self, reg_x: Register, reg_y: Register) {
+        let vx = self.registers[reg_x.to_usize()];
+        let vy = self.registers[reg_y.to_usize()];
+        self.registers[Register::Vf.to_usize()] = if vx > vy { 1 } else { 0 };
+        self.registers[reg_x.to_usize()] = vx.overflowing_sub(vy).0;
+    }
+
+    fn shr(&mut self, reg: Register) {
+        self.registers[reg.to_usize()] >>= 1;
+    }
+
+    fn subn(&mut self, reg_x: Register, reg_y: Register) {
+        let vx = self.registers[reg_x.to_usize()];
+        let vy = self.registers[reg_y.to_usize()];
+        self.registers[Register::Vf.to_usize()] = if vy > vx { 1 } else { 0 };
+        self.registers[reg_x.to_usize()] = vx.overflowing_sub(vy).0;
     }
 }
