@@ -43,6 +43,10 @@ impl Emu {
             Opcode::Sub(reg_x, reg_y) => self.sub(*reg_x, *reg_y),
             Opcode::Shr(reg_x) => self.shr(*reg_x),
             Opcode::Subn(reg_x, reg_y) => self.subn(*reg_x, *reg_y),
+            Opcode::Shl(reg_x) => self.shl(*reg_x),
+            Opcode::SneReg(reg_x, reg_y) => self.sne_reg(*reg_x, *reg_y),
+            Opcode::LdI(addr) => self.ld_i(*addr),
+            Opcode::JpV0(addr) => self.jp_v0(*addr),
             _ => unreachable!(),
         }
     }
@@ -132,5 +136,23 @@ impl Emu {
         let vy = self.registers[reg_y.to_usize()];
         self.registers[Register::Vf.to_usize()] = if vy > vx { 1 } else { 0 };
         self.registers[reg_x.to_usize()] = vx.overflowing_sub(vy).0;
+    }
+
+    fn shl(&mut self, reg: Register) {
+        self.registers[reg.to_usize()] <<= 1;
+    }
+
+    fn sne_reg(&mut self, reg_x: Register, reg_y: Register) {
+        if self.registers[reg_x.to_usize()] != self.registers[reg_y.to_usize()] {
+            self.pc += 2;
+        }
+    }
+
+    fn ld_i(&mut self, addr: u16) {
+        self.i = addr;
+    }
+
+    fn jp_v0(&mut self, addr: u16) {
+        self.pc = (self.registers[Register::V0.to_usize()] as u16) + addr;
     }
 }
