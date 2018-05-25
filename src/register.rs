@@ -1,6 +1,6 @@
 use std::convert::From;
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum Register {
     V0,
     V1,
@@ -50,7 +50,7 @@ impl From<u8> for Register {
 }
 
 impl Register {
-    pub fn to_u8(&self) -> u8 {
+    pub fn to_usize(&self) -> usize {
         match self {
             Register::V0 => 0,
             Register::V1 => 1,
